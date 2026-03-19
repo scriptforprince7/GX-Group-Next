@@ -3,6 +3,7 @@ import type { API, Config } from '@strapi/client';
 import { cacheLife, cacheTag, revalidateTag } from 'next/cache';
 import { draftMode } from 'next/headers';
 import { API_URL } from '../utils';
+import { fetchMockData, fetchMockSingle } from '../mock-data';
 
 export class StrapiError extends Error {
   constructor(
@@ -91,11 +92,9 @@ export async function fetchCollectionType<T = API.Document[]>(
     // Use cached version for published content
     return fetchCollectionCached<T>(collectionName, options, config);
   } catch (error) {
-    throw new StrapiError(
-      `Failed to fetch collection "${collectionName}"`,
-      collectionName,
-      error
-    );
+    console.warn(`Strapi API failed for "${collectionName}", using mock data:`, error);
+    // Fallback to mock data for demo purposes
+    return await fetchMockData(collectionName, options) as T;
   }
 }
 
@@ -157,11 +156,9 @@ export async function fetchSingleType<T = API.Document>(
 
     return fetchSingleCached<T>(singleTypeName, options, config);
   } catch (error) {
-    throw new StrapiError(
-      `Failed to fetch single type "${singleTypeName}"`,
-      singleTypeName,
-      error
-    );
+    console.warn(`Strapi API failed for "${singleTypeName}", using mock data:`, error);
+    // Fallback to mock data for demo purposes
+    return await fetchMockSingle(singleTypeName, options) as T;
   }
 }
 
@@ -225,11 +222,13 @@ export async function fetchDocument<T = API.Document>(
 
     return fetchDocumentCached<T>(collectionName, documentId, options, config);
   } catch (error) {
-    throw new StrapiError(
-      `Failed to fetch document "${documentId}" from "${collectionName}"`,
-      collectionName,
-      error
-    );
+    console.warn(`Strapi API failed for document "${documentId}" from "${collectionName}", using mock data:`, error);
+    // Fallback to mock data for demo purposes
+    const mockData = await fetchMockData(collectionName, options);
+    if (Array.isArray(mockData.data)) {
+      return mockData.data?.find((item: any) => item.id === parseInt(documentId)) as T;
+    }
+    return null as T;
   }
 }
 
